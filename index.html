@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeTrack</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>FreeTrack</h1>
+
+        <div class="input-container">
+            <label for="problema">Ingrese el problema:</label><br>
+            <textarea id="problema" rows="3"></textarea>
+        </div>
+
+        <button id="calcular" onclick="simular()">Calcular</button>
+
+        <div class="resultados">
+            <h3>Resultados:</h3>
+            <p>Altura máxima: <span id="alturaMaxima"></span> m</p>
+            <p>Tiempo hasta altura máxima: <span id="tiempoSubida"></span> s</p>
+            <p>Distancia hasta el cable: <span id="distanciaCable"></span> m</p>
+            <p>Tiempo de caída: <span id="tiempoCaida"></span> s</p>
+            <p>Velocidad final: <span id="velocidadFinal"></span> m/s</p>
+        </div>
+
+        <canvas id="grafico" width="600" height="400"></canvas>
+        <canvas id="graficoCaida" width="600" height="400"></canvas>
+    </div>
+
+    <script>
+        function simular() {
+            const velocidad = 20; 
+            const angulo = 45 * Math.PI / 180;
+            const g = 9.81;
+            
+            const velocidadX = velocidad * Math.cos(angulo);
+            const velocidadY = velocidad * Math.sin(angulo);
+            
+            const tiempoVuelo = (2 * velocidadY) / g;
+            const alturaMaxima = (velocidadY ** 2) / (2 * g);
+            const distanciaCable = velocidadX * tiempoVuelo;
+            const tiempoSubida = velocidadY / g;
+            const tiempoCaida = tiempoSubida;
+            const velocidadFinal = Math.sqrt(velocidadY ** 2 + 2 * g * alturaMaxima);
+            
+            document.getElementById("alturaMaxima").textContent = alturaMaxima.toFixed(2);
+            document.getElementById("tiempoSubida").textContent = tiempoSubida.toFixed(2);
+            document.getElementById("distanciaCable").textContent = distanciaCable.toFixed(2);
+            document.getElementById("tiempoCaida").textContent = tiempoCaida.toFixed(2);
+            document.getElementById("velocidadFinal").textContent = velocidadFinal.toFixed(2);
+            
+            animarTrayectoria(velocidadX, velocidadY, g, tiempoVuelo);
+            animarCaidaLibre(alturaMaxima, g);
+        }
+
+        function animarTrayectoria(velocidadX, velocidadY, g, tiempoVuelo) {
+            const canvas = document.getElementById("grafico");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const escala = 10;
+            let t = 0;
+            let puntos = [];
+            
+            function frame() {
+                if (t > tiempoVuelo) return;
+                
+                let x = velocidadX * t * escala;
+                let y = (velocidadY * t - 0.5 * g * t * t) * escala;
+                
+                puntos.push({ x, y });
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = "blue";
+                ctx.beginPath();
+                puntos.forEach((p, index) => {
+                    if (index === 0) ctx.moveTo(p.x, canvas.height - p.y);
+                    else ctx.lineTo(p.x, canvas.height - p.y);
+                });
+                ctx.stroke();
+                
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(x, canvas.height - y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                t += 0.05;
+                requestAnimationFrame(frame);
+            }
+            frame();
+        }
+
+        function animarCaidaLibre(alturaMaxima, g) {
+            const canvas = document.getElementById("graficoCaida");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const escala = 10;
+            let t = 0;
+            let puntos = [];
+            
+            function frame() {
+                let y = (alturaMaxima * escala) - (0.5 * g * t * t * escala);
+                
+                if (y <= 0) return;
+                
+                puntos.push(y);
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = "blue";
+                ctx.beginPath();
+                puntos.forEach((p, index) => {
+                    if (index === 0) ctx.moveTo(canvas.width / 2, canvas.height - p);
+                    else ctx.lineTo(canvas.width / 2, canvas.height - p);
+                });
+                ctx.stroke();
+                
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height - y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                t += 0.05;
+                requestAnimationFrame(frame);
+            }
+            frame();
+        }
+    </script>
+</body>
+</html>
