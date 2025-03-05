@@ -1,23 +1,22 @@
-// Script para simulador de tiro parabólico con caída libre
-
 // Obtener elementos del DOM
 const calcularBtn = document.getElementById("calcular");
 const ctx = document.getElementById("grafico").getContext("2d");
-const ctxCaida = document.getElementById("graficoCaida").getContext("2d"); // Nuevo canvas para la caída
+const ctxCaida = document.getElementById("graficoCaida").getContext("2d");
+
 let grafico;
 let graficoCaida;
 
+// Event listener para el botón de calcular
 calcularBtn.addEventListener("click", function () {
-    // Obtener valores del problema (debe ser procesado para extraer números)
     const problemaTexto = document.getElementById("problema").value;
     const valoresExtraidos = extraerValores(problemaTexto);
 
     if (!valoresExtraidos) {
-        alert("Por favor, ingrese un problema válido con velocidad y ángulo.");
+        alert("Por favor, ingrese un problema válido.");
         return;
     }
 
-    const { velocidadInicial, angulo } = valoresExtraidos;
+    const { velocidadInicial, angulo, alturaInicial = 0 } = valoresExtraidos;
     const g = 9.8; // Gravedad en m/s^2
 
     // Convertir ángulo a radianes
@@ -28,7 +27,7 @@ calcularBtn.addEventListener("click", function () {
     const velocidadY = velocidadInicial * Math.sin(anguloRad);
 
     // 1. Altura máxima
-    const alturaMaxima = (velocidadY ** 2) / (2 * g);
+    const alturaMaxima = (velocidadY ** 2) / (2 * g) + alturaInicial;
 
     // 2. Tiempo hasta altura máxima
     const tiempoSubida = velocidadY / g;
@@ -37,12 +36,12 @@ calcularBtn.addEventListener("click", function () {
     const distanciaCable = velocidadX * tiempoSubida;
 
     // 4. Tiempo de caída libre desde la altura máxima
-    const tiempoCaida = Math.sqrt((2 * alturaMaxima) / g);
+    const tiempoCaida = Math.sqrt((2 * (alturaMaxima - alturaInicial)) / g);
 
     // 5. Velocidad final antes de impactar el suelo
-    const velocidadFinal = Math.sqrt(2 * g * alturaMaxima);
+    const velocidadFinal = Math.sqrt(2 * g * (alturaMaxima - alturaInicial));
 
-    // Mostrar resultados en la página
+    // Mostrar resultados
     document.getElementById("alturaMaxima").textContent = alturaMaxima.toFixed(2);
     document.getElementById("tiempoSubida").textContent = tiempoSubida.toFixed(2);
     document.getElementById("distanciaCable").textContent = distanciaCable.toFixed(2);
@@ -61,21 +60,25 @@ calcularBtn.addEventListener("click", function () {
     animarTrayectoria(velocidadX, velocidadY, tiempoSubida, tiempoCaida, distanciaCable, alturaMaxima);
 });
 
-// Función para extraer valores de un problema en texto
+// Función para extraer los valores de un texto
 function extraerValores(texto) {
+    // Usar expresiones regulares para extraer los valores de velocidad, ángulo y altura
     const velocidadMatch = texto.match(/(\d+(\.\d+)?)\s*m\/s/);
     const anguloMatch = texto.match(/(\d+(\.\d+)?)\s*°/);
+    const alturaMatch = texto.match(/altura de (\d+(\.\d+)?)/); // Altura opcional (si está mencionada)
 
+    // Verificar que ambos, velocidad y ángulo, se hayan encontrado
     if (velocidadMatch && anguloMatch) {
         return {
             velocidadInicial: parseFloat(velocidadMatch[1]),
-            angulo: parseFloat(anguloMatch[1])
+            angulo: parseFloat(anguloMatch[1]),
+            alturaInicial: alturaMatch ? parseFloat(alturaMatch[1]) : 0, // Si no hay altura, se asume 0
         };
     }
-    return null;
+    return null; // Si no se encuentra información válida
 }
 
-// Función para animar la trayectoria y caída
+// Función para animar la trayectoria
 function animarTrayectoria(vx, vy, tiempoSubida, tiempoCaida, xCable, yMax) {
     let datosX = [];
     let datosY = [];
@@ -101,12 +104,13 @@ function animarTrayectoria(vx, vy, tiempoSubida, tiempoCaida, xCable, yMax) {
         t += dt;
     }
 
+    // El gráfico para el tiro parabólico
     grafico = new Chart(ctx, {
         type: "line",
         data: {
             labels: [],
             datasets: [{
-                label: "Pelota",
+                label: "Trayectoria",
                 data: [],
                 borderColor: "rgba(34, 193, 195, 0.8)",
                 pointRadius: 6,
@@ -120,6 +124,7 @@ function animarTrayectoria(vx, vy, tiempoSubida, tiempoCaida, xCable, yMax) {
         }
     });
 
+    // El gráfico para la caída libre
     graficoCaida = new Chart(ctxCaida, {
         type: "line",
         data: {
