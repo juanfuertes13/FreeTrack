@@ -33,47 +33,74 @@
 
     <script>
         function simular() {
-            const velocidad = 20; 
-            const angulo = 45 * Math.PI / 180;
-            const g = 9.81;
+            // Extraer los datos del problema
+            const problemaTexto = document.getElementById("problema").value;
+            const valoresExtraidos = extraerValores(problemaTexto);
             
-            const velocidadX = velocidad * Math.cos(angulo);
-            const velocidadY = velocidad * Math.sin(angulo);
-            
+            if (!valoresExtraidos) {
+                alert("Por favor, ingrese un problema válido.");
+                return;
+            }
+
+            const { velocidadInicial, angulo, alturaInicial = 0 } = valoresExtraidos;
+            const g = 9.81; // Gravedad
+
+            const velocidadX = velocidadInicial * Math.cos(angulo);
+            const velocidadY = velocidadInicial * Math.sin(angulo);
+
             const tiempoVuelo = (2 * velocidadY) / g;
-            const alturaMaxima = (velocidadY ** 2) / (2 * g);
+            const alturaMaxima = (velocidadY ** 2) / (2 * g) + alturaInicial;
             const distanciaCable = velocidadX * tiempoVuelo;
             const tiempoSubida = velocidadY / g;
             const tiempoCaida = tiempoSubida;
             const velocidadFinal = Math.sqrt(velocidadY ** 2 + 2 * g * alturaMaxima);
-            
+
+            // Mostrar los resultados
             document.getElementById("alturaMaxima").textContent = alturaMaxima.toFixed(2);
             document.getElementById("tiempoSubida").textContent = tiempoSubida.toFixed(2);
             document.getElementById("distanciaCable").textContent = distanciaCable.toFixed(2);
             document.getElementById("tiempoCaida").textContent = tiempoCaida.toFixed(2);
             document.getElementById("velocidadFinal").textContent = velocidadFinal.toFixed(2);
-            
+
+            // Animaciones
             animarTrayectoria(velocidadX, velocidadY, g, tiempoVuelo);
             animarCaidaLibre(alturaMaxima, g);
         }
 
+        // Función para extraer los valores de velocidad, ángulo y altura desde el texto del problema
+        function extraerValores(texto) {
+            const velocidadMatch = texto.match(/(\d+(\.\d+)?)\s*m\/s/);
+            const anguloMatch = texto.match(/(\d+(\.\d+)?)\s*°/);
+            const alturaMatch = texto.match(/altura de (\d+(\.\d+)?)/); // Altura opcional
+
+            if (velocidadMatch && anguloMatch) {
+                return {
+                    velocidadInicial: parseFloat(velocidadMatch[1]),
+                    angulo: parseFloat(anguloMatch[1]) * Math.PI / 180,
+                    alturaInicial: alturaMatch ? parseFloat(alturaMatch[1]) : 0
+                };
+            }
+            return null; // Si no se encuentra la información válida
+        }
+
+        // Función para animar la trayectoria de la pelota
         function animarTrayectoria(velocidadX, velocidadY, g, tiempoVuelo) {
             const canvas = document.getElementById("grafico");
             const ctx = canvas.getContext("2d");
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             const escala = 10;
             let t = 0;
             let puntos = [];
-            
+
             function frame() {
                 if (t > tiempoVuelo) return;
-                
+
                 let x = velocidadX * t * escala;
                 let y = (velocidadY * t - 0.5 * g * t * t) * escala;
-                
+
                 puntos.push({ x, y });
-                
+
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.strokeStyle = "blue";
                 ctx.beginPath();
@@ -82,34 +109,35 @@
                     else ctx.lineTo(p.x, canvas.height - p.y);
                 });
                 ctx.stroke();
-                
+
                 ctx.fillStyle = "red";
                 ctx.beginPath();
                 ctx.arc(x, canvas.height - y, 5, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 t += 0.05;
                 requestAnimationFrame(frame);
             }
             frame();
         }
 
+        // Función para animar la caída libre
         function animarCaidaLibre(alturaMaxima, g) {
             const canvas = document.getElementById("graficoCaida");
             const ctx = canvas.getContext("2d");
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             const escala = 10;
             let t = 0;
             let puntos = [];
-            
+
             function frame() {
                 let y = (alturaMaxima * escala) - (0.5 * g * t * t * escala);
-                
+
                 if (y <= 0) return;
-                
+
                 puntos.push(y);
-                
+
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.strokeStyle = "blue";
                 ctx.beginPath();
@@ -118,12 +146,12 @@
                     else ctx.lineTo(canvas.width / 2, canvas.height - p);
                 });
                 ctx.stroke();
-                
+
                 ctx.fillStyle = "red";
                 ctx.beginPath();
                 ctx.arc(canvas.width / 2, canvas.height - y, 5, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 t += 0.05;
                 requestAnimationFrame(frame);
             }
